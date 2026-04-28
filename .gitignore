@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+target/
+
+# Local tooling and generated app data
+.tools/
+backend/data/
+backend/uploads/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
