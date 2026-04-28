@@ -65,11 +65,11 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> allowedOrigins = Arrays.stream(frontendOrigins.split(","))
+        List<String> allowedOriginPatterns = Arrays.stream(frontendOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .toList();
-        configuration.setAllowedOrigins(allowedOrigins);
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
