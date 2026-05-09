@@ -1,6 +1,11 @@
 import type { ClothingCategory, ClothingPiece, Outfit, Profile, User } from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+function localApiBase() {
+  const hostname = window.location.hostname || 'localhost';
+  return `http://${hostname}:8080`;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? localApiBase();
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = options.body instanceof FormData
@@ -45,10 +50,22 @@ export const api = {
   pieces: () => request<ClothingPiece[]>('/api/pieces'),
   uploadPiece: (photo: Blob, category: ClothingCategory) => {
     const form = new FormData();
+    const extension = extensionForPhoto(photo);
     form.append('category', category);
-    form.append('photo', photo, `wardrobe-${category.toLowerCase()}.jpg`);
+    form.append('photo', photo, `wardrobe-${category.toLowerCase()}${extension}`);
     return request<ClothingPiece>('/api/pieces', { method: 'POST', body: form });
   },
   deletePiece: (id: number) => request<void>(`/api/pieces/${id}`, { method: 'DELETE' }),
   randomOutfit: () => request<Outfit>('/api/outfit/random'),
 };
+
+function extensionForPhoto(photo: Blob) {
+  switch (photo.type) {
+    case 'image/png':
+      return '.png';
+    case 'image/webp':
+      return '.webp';
+    default:
+      return '.jpg';
+  }
+}

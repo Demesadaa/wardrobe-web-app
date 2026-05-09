@@ -42,6 +42,10 @@ public class Profile {
         return user;
     }
 
+    public void setUser(AppUser user) {
+        this.user = user;
+    }
+
     public String getDisplayName() {
         return displayName;
     }

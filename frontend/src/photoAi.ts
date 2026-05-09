@@ -35,11 +35,84 @@ async function removePhotoBackground(photo: Blob) {
     const blob = await removeBackground(photo, {
       output: { format: 'image/png' },
     });
-    return { blob, backgroundRemoved: true };
+    return { blob: await cropTransparentPadding(blob), backgroundRemoved: true };
   } catch (error) {
     console.warn('Background removal failed; using original photo.', error);
     return { blob: photo, backgroundRemoved: false };
   }
+}
+
+async function cropTransparentPadding(photo: Blob): Promise<Blob> {
+  const image = await blobToImage(photo);
+  try {
+    const sourceCanvas = document.createElement('canvas');
+    sourceCanvas.width = image.naturalWidth;
+    sourceCanvas.height = image.naturalHeight;
+    const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
+    if (!sourceContext) return photo;
+
+    sourceContext.drawImage(image, 0, 0);
+    const imageData = sourceContext.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+    const bounds = findOpaqueBounds(imageData);
+    if (!bounds) return photo;
+
+    const padding = Math.round(Math.max(bounds.width, bounds.height) * 0.04);
+    const x = Math.max(0, bounds.x - padding);
+    const y = Math.max(0, bounds.y - padding);
+    const width = Math.min(sourceCanvas.width - x, bounds.width + padding * 2);
+    const height = Math.min(sourceCanvas.height - y, bounds.height + padding * 2);
+
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = width;
+    outputCanvas.height = height;
+    outputCanvas.getContext('2d')?.drawImage(sourceCanvas, x, y, width, height, 0, 0, width, height);
+    return await canvasToBlob(outputCanvas);
+  } finally {
+    URL.revokeObjectURL(image.src);
+  }
+}
+
+function findOpaqueBounds(imageData: ImageData) {
+  const { data, width, height } = imageData;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const alpha = data[(y * width + x) * 4 + 3];
+      if (alpha > 12) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error('Could not crop transparent image padding'));
+      }
+    }, 'image/png');
+  });
 }
 
 async function classifyPhoto(photo: Blob): Promise<MobileNetPrediction[]> {

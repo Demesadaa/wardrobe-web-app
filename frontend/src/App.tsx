@@ -402,9 +402,9 @@ function LobbyPage() {
           </div>
           {categories.map((category) =>
             outfit[category] ? (
-              <img
+              <WearableImage
                 key={category}
-                className={`wearable wearable-${category.toLowerCase()}`}
+                category={category}
                 src={imageUrl(outfit[category]!.imageUrl)}
                 alt={categoryLabels[category]}
               />
@@ -431,6 +431,143 @@ function LobbyPage() {
       </div>
     </section>
   );
+}
+
+function WearableImage({ category, src, alt }: { category: ClothingCategory; src: string; alt: string }) {
+  const [displaySrc, setDisplaySrc] = useState(src);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDisplaySrc(src);
+    normalizeWearableImage(src).then((normalizedSrc) => {
+      if (!cancelled) {
+        setDisplaySrc(normalizedSrc);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
+  return <img className={`wearable wearable-${category.toLowerCase()}`} src={displaySrc} alt={alt} />;
+}
+
+const normalizedImageCache = new Map<string, Promise<string>>();
+
+function normalizeWearableImage(src: string) {
+  const cached = normalizedImageCache.get(src);
+  if (cached) {
+    return cached;
+  }
+
+  const normalized = cropTransparentImage(src).catch(() => src);
+  normalizedImageCache.set(src, normalized);
+  return normalized;
+}
+
+async function cropTransparentImage(src: string) {
+  const response = await fetch(src, { credentials: 'include' });
+  if (!response.ok) {
+    return src;
+  }
+
+  const blob = await response.blob();
+  if (!blob.type.includes('png') && !blob.type.includes('webp')) {
+    return src;
+  }
+
+  const image = await blobToCanvasImage(blob);
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width = image.naturalWidth;
+  sourceCanvas.height = image.naturalHeight;
+  const context = sourceCanvas.getContext('2d', { willReadFrequently: true });
+  if (!context) {
+    URL.revokeObjectURL(image.src);
+    return src;
+  }
+
+  context.drawImage(image, 0, 0);
+  URL.revokeObjectURL(image.src);
+
+  const imageData = context.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+  const bounds = findTransparentCropBounds(imageData);
+  if (!bounds) {
+    return src;
+  }
+
+  const outputCanvas = document.createElement('canvas');
+  outputCanvas.width = bounds.width;
+  outputCanvas.height = bounds.height;
+  outputCanvas.getContext('2d')?.drawImage(
+    sourceCanvas,
+    bounds.x,
+    bounds.y,
+    bounds.width,
+    bounds.height,
+    0,
+    0,
+    bounds.width,
+    bounds.height,
+  );
+
+  const outputBlob = await new Promise<Blob>((resolve, reject) => {
+    outputCanvas.toBlob((croppedBlob) => {
+      if (croppedBlob) {
+        resolve(croppedBlob);
+      } else {
+        reject(new Error('Could not normalize clothing image'));
+      }
+    }, 'image/png');
+  });
+
+  return URL.createObjectURL(outputBlob);
+}
+
+function blobToCanvasImage(blob: Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not load clothing image'));
+    };
+    image.src = url;
+  });
+}
+
+function findTransparentCropBounds(imageData: ImageData) {
+  const { data, width, height } = imageData;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3] > 12) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  const padding = Math.round(Math.max(maxX - minX, maxY - minY) * 0.02);
+  const x = Math.max(0, minX - padding);
+  const y = Math.max(0, minY - padding);
+  return {
+    x,
+    y,
+    width: Math.min(width - x, maxX - minX + 1 + padding * 2),
+    height: Math.min(height - y, maxY - minY + 1 + padding * 2),
+  };
 }
 
 function groupPieces(pieces: ClothingPiece[]) {

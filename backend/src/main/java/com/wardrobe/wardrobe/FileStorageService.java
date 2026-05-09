@@ -59,16 +59,22 @@ public class FileStorageService {
     }
 
     private String extensionFor(String originalName, String contentType) {
+        if (contentType.equals("image/png")) {
+            return ".png";
+        }
+        if (contentType.equals("image/webp")) {
+            return ".webp";
+        }
+        if (contentType.equals("image/jpeg") || contentType.equals("image/jpg")) {
+            return ".jpg";
+        }
+
         String cleaned = originalName.toLowerCase(Locale.ROOT);
         int dot = cleaned.lastIndexOf('.');
         if (dot >= 0 && dot < cleaned.length() - 1) {
             return cleaned.substring(dot);
         }
-        return switch (contentType) {
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".jpg";
-        };
+        return ".jpg";
     }
 
     public record StoredFile(String imageUrl, String storagePath, String originalFilename) {

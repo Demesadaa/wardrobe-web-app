@@ -70,6 +70,10 @@ public class ClothingPiece {
         return category;
     }
 
+    public void setCategory(ClothingCategory category) {
+        this.category = category;
+    }
+
     public String getImageUrl() {
         return imageUrl;
     }
