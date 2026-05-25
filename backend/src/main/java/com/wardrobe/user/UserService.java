@@ -5,6 +5,7 @@ import com.wardrobe.user.UserRequests.UpdateUserRequest;
 import com.wardrobe.user.UserResponses.UserDto;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(UserDto::from)

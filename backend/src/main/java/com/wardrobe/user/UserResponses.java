@@ -4,10 +4,10 @@ public final class UserResponses {
     private UserResponses() {
     }
 
-    public record UserDto(Long id, String username, String email, String displayName) {
+    public record UserDto(Long id, String username, String email, String displayName, UserRole role) {
         public static UserDto from(AppUser user) {
             String displayName = user.getProfile() == null ? user.getUsername() : user.getProfile().getDisplayName();
-            return new UserDto(user.getId(), user.getUsername(), user.getEmail(), displayName);
+            return new UserDto(user.getId(), user.getUsername(), user.getEmail(), displayName, user.getRole());
         }
     }
 

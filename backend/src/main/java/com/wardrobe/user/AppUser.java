@@ -3,6 +3,8 @@ package com.wardrobe.user;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,6 +27,9 @@ public class AppUser {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
+    private UserRole role = UserRole.USER;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Profile profile;
 
@@ -32,9 +37,14 @@ public class AppUser {
     }
 
     public AppUser(String username, String email, String passwordHash) {
+        this(username, email, passwordHash, UserRole.USER);
+    }
+
+    public AppUser(String username, String email, String passwordHash, UserRole role) {
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
+        this.role = role == null ? UserRole.USER : role;
     }
 
     public Long getId() {
@@ -63,6 +73,14 @@ public class AppUser {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public UserRole getRole() {
+        return role == null ? UserRole.USER : role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role == null ? UserRole.USER : role;
     }
 
     public Profile getProfile() {

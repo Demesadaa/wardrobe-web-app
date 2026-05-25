@@ -1,0 +1,117 @@
+# Assignment 1 Security Update
+
+I, Demetre, updated my existing Spring Boot wardrobe project by integrating Spring Security into the already submitted application. I did not create a new project. I added authentication, authorization, role-based access control, encrypted password storage, and method-level security.
+
+## Login Credentials
+
+The application seeds these test accounts when the backend starts:
+
+```text
+ADMIN account
+Username: admin
+Password: Admin123!
+Role: ADMIN
+
+USER account
+Username: demetre
+Password: User12345!
+Role: USER
+```
+
+All seeded and registered passwords are stored with `BCryptPasswordEncoder`, not plain text.
+
+## Security Summary
+
+I added persistent user roles with `USER` and `ADMIN` values. Registered users receive the `USER` role by default. The seeded `admin` account receives the `ADMIN` role.
+
+I updated `SecurityConfig` to include a `SecurityFilterChain`, public endpoints, authenticated endpoints, role-restricted endpoints, login behavior, logout behavior, CORS, and method security.
+
+I enabled method-level security with `@EnableMethodSecurity` and added this method restriction:
+
+```java
+@PreAuthorize("hasRole('ADMIN')")
+public List<UserDto> getAllUsers()
+```
+
+## Public Endpoints
+
+These endpoints are available without logging in:
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+GET  /swagger-ui/**
+GET  /v3/api-docs/**
+GET  /uploads/**
+GET  /h2-console/**
+```
+
+## Protected Endpoints
+
+These endpoints require an authenticated session:
+
+```text
+GET  /api/me
+POST /api/auth/logout
+GET  /api/profile
+PUT  /api/profile
+GET  /api/pieces
+POST /api/pieces
+GET  /api/pieces/{id}
+PUT  /api/pieces/{id}
+DELETE /api/pieces/{id}
+GET  /api/outfit/random
+```
+
+## ADMIN-Only Functionality
+
+Only users with the `ADMIN` role can access these management endpoints:
+
+```text
+GET    /api/users
+POST   /api/users
+GET    /api/users/{id}
+PUT    /api/users/{id}
+DELETE /api/users/{id}
+GET    /api/profiles
+POST   /api/profiles
+GET    /api/profiles/{id}
+PUT    /api/profiles/{id}
+DELETE /api/profiles/{id}
+GET    /api/clothing-pieces
+GET    /api/clothing-pieces/{id}
+```
+
+The frontend also shows the current logged-in role in the header after login.
+
+## Login and Logout
+
+Login is handled through:
+
+```text
+POST /api/auth/login
+```
+
+Logout is handled through:
+
+```text
+POST /api/auth/logout
+```
+
+After logout, the session is invalidated and the `JSESSIONID` cookie is deleted.
+
+## CSRF Explanation
+
+CSRF protection is disabled in `SecurityConfig` because this project uses a separate React frontend that sends JSON and multipart requests to the Spring Boot API from another origin. The API still requires authenticated sessions for protected routes, CORS is restricted to configured frontend origins, and this decision is also commented in the security configuration.
+
+## Update Log
+
+- Added Spring Security role support with `USER` and `ADMIN`.
+- Added BCrypt password hashing for seeded users and registered users.
+- Added seeded login accounts for testing the assignment.
+- Enabled method security with `@EnableMethodSecurity`.
+- Added an `@PreAuthorize("hasRole('ADMIN')")` method-level restriction.
+- Restricted admin management endpoints to the `ADMIN` role.
+- Kept wardrobe/profile endpoints protected for authenticated users.
+- Configured logout to invalidate the session and return HTTP 204.
+- Added frontend role display after login.

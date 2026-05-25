@@ -40,6 +40,7 @@ export default function App() {
         <div>
           <p className="eyebrow">Wardrobe Lab</p>
           <h1>Hello, {user.displayName}</h1>
+          <p className="muted">Signed in as {user.role}</p>
         </div>
         <nav>
           <button className={screen === 'lobby' ? 'active' : ''} onClick={() => setScreen('lobby')}>
