@@ -9,19 +9,32 @@ public final class UserRequests {
     }
 
     public record RegisterRequest(
-            @NotBlank @Size(min = 3, max = 40) String username,
-            @NotBlank @Email @Size(max = 120) String email,
-            @NotBlank @Size(min = 8, max = 100) String password) {
+            @NotBlank(message = "{validation.username.required}")
+            @Size(min = 3, max = 40, message = "{validation.username.size}")
+            String username,
+            @NotBlank(message = "{validation.email.required}")
+            @Email(message = "{validation.email.invalid}")
+            @Size(max = 120, message = "{validation.email.size}")
+            String email,
+            @NotBlank(message = "{validation.password.required}")
+            @Size(min = 8, max = 100, message = "{validation.password.size}")
+            String password) {
     }
 
     public record LoginRequest(
-            @NotBlank String username,
-            @NotBlank String password) {
+            @NotBlank(message = "{validation.username.required}") String username,
+            @NotBlank(message = "{validation.password.required}") String password) {
     }
 
     public record UpdateUserRequest(
-            @NotBlank @Size(min = 3, max = 40) String username,
-            @NotBlank @Email @Size(max = 120) String email,
-            @Size(min = 8, max = 100) String password) {
+            @NotBlank(message = "{validation.username.required}")
+            @Size(min = 3, max = 40, message = "{validation.username.size}")
+            String username,
+            @NotBlank(message = "{validation.email.required}")
+            @Email(message = "{validation.email.invalid}")
+            @Size(max = 120, message = "{validation.email.size}")
+            String email,
+            @Size(min = 8, max = 100, message = "{validation.password.size}")
+            String password) {
     }
 }

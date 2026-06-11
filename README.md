@@ -197,6 +197,21 @@ cd backend
 mvn spring-boot:run
 ```
 
+The default backend profile is `dev`. To choose a profile explicitly from the command line:
+
+```powershell
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+mvn spring-boot:run -Dspring-boot.run.profiles=prod
+```
+
+From an IDE, set the active Spring profile to `dev` or `prod` in the run configuration.
+
+Profiles:
+
+- `dev` uses an in-memory H2 database, creates/drops schema for local runs, enables the H2 console, seeds test users, and sets detailed `com.wardrobe` logging.
+- `prod` uses PostgreSQL settings from environment variables, disables the H2 console, validates the schema, uses stricter cookie defaults, and reduces log verbosity.
+
 Start the frontend:
 
 ```powershell
@@ -214,6 +229,54 @@ Swagger: http://localhost:8080/swagger-ui/index.html
 ```
 
 Camera access usually requires `localhost` or HTTPS.
+
+## Advanced Configuration
+
+The backend defines validated custom configuration properties in `AppSettingsProperties` using the `app.settings` prefix:
+
+- `app.settings.title` controls the displayed API title.
+- `app.settings.default-page-limit` controls the configured default page size and is validated with minimum/maximum bounds.
+- `app.settings.support-email` stores the support contact email and is validated as an email.
+- `app.settings.external-style-service-url` stores the external styling service URL.
+- `app.settings.ai-suggestions-enabled` controls the AI suggestion feature flag.
+
+These settings are injected into `GET /api/meta`, which returns dynamic API metadata.
+
+## Internationalization
+
+The API supports localized response and error messages through UTF-8 resource bundles:
+
+```text
+backend/src/main/resources/messages.properties
+backend/src/main/resources/messages_en.properties
+```
+
+The backend uses `AcceptHeaderLocaleResolver`, so requests can select a language with the standard `Accept-Language` header.
+
+Examples:
+
+```powershell
+curl -H "Accept-Language: en" http://localhost:8080/api/meta
+curl -H "Accept-Language: ka" http://localhost:8080/api/meta
+```
+
+Localized validation errors can be tested by sending invalid data to endpoints such as `POST /api/auth/register` or `PUT /api/profile`. Validation annotations use message keys like `{validation.username.required}` and `{validation.password.size}`.
+
+## Structured Logging
+
+The backend uses SLF4J logging in services and exception handling. Logs are written to the console and to:
+
+```text
+backend/logs/app.log
+```
+
+Rolling log files use this pattern:
+
+```text
+backend/logs/app-yyyy-MM-dd.N.log
+```
+
+The `dev` profile enables more detailed package logging, and the `prod` profile uses stricter root logging levels.
 
 ## Database
 

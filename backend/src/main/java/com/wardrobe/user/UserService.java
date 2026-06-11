@@ -4,6 +4,8 @@ import com.wardrobe.user.UserRequests.RegisterRequest;
 import com.wardrobe.user.UserRequests.UpdateUserRequest;
 import com.wardrobe.user.UserResponses.UserDto;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -14,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -34,12 +38,15 @@ public class UserService {
         Profile profile = new Profile(user, request.username().trim());
         user.setProfile(profile);
 
-        return UserDto.from(userRepository.save(user));
+        AppUser savedUser = userRepository.save(user);
+        log.info("Created user {} with id {}", savedUser.getUsername(), savedUser.getId());
+        return UserDto.from(savedUser);
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN')")
     public List<UserDto> getAllUsers() {
+        log.debug("Loading all users for admin request");
         return userRepository.findAll().stream()
                 .map(UserDto::from)
                 .toList();
@@ -60,19 +67,24 @@ public class UserService {
         user.setEmail(request.email().trim().toLowerCase());
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            log.info("Updated password hash for user id {}", id);
         }
-        return UserDto.from(userRepository.save(user));
+        AppUser savedUser = userRepository.save(user);
+        log.info("Updated user {} with id {}", savedUser.getUsername(), savedUser.getId());
+        return UserDto.from(savedUser);
     }
 
     @Transactional
     public void deleteUser(Long id) {
         AppUser user = findUserById(id);
         userRepository.delete(user);
+        log.warn("Deleted user {} with id {}", user.getUsername(), id);
     }
 
     @Transactional(readOnly = true)
     public AppUser currentUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("Rejected request without authenticated principal");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         return userRepository.findByUsername(authentication.getName())

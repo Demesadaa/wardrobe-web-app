@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -14,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class FileStorageService {
+    private static final Logger log = LoggerFactory.getLogger(FileStorageService.class);
+
     private final Path uploadRoot;
 
     public FileStorageService(StorageProperties properties) {
@@ -22,10 +26,12 @@ public class FileStorageService {
 
     public StoredFile store(MultipartFile file, Long userId) {
         if (file.isEmpty()) {
+            log.warn("Rejected empty upload for user {}", userId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo is required");
         }
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
+            log.warn("Rejected upload for user {} with unsupported content type {}", userId, contentType);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only image uploads are supported");
         }
 
@@ -39,10 +45,12 @@ public class FileStorageService {
             Files.createDirectories(userDirectory);
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
+            log.error("Could not store upload {} for user {}", originalName, userId, exception);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not store image", exception);
         }
 
         String imageUrl = "/uploads/" + userId + "/" + filename;
+        log.info("Stored upload {} for user {} at {}", originalName, userId, target);
         return new StoredFile(imageUrl, target.toString(), originalName);
     }
 
@@ -51,6 +59,7 @@ public class FileStorageService {
             Files.deleteIfExists(Path.of(storagePath));
         } catch (IOException ignored) {
             // A missing image file should not block deleting the database row.
+            log.warn("Could not delete stored image {}", storagePath, ignored);
         }
     }
 

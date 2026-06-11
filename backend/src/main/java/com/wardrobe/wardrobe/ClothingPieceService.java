@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ClothingPieceService {
+    private static final Logger log = LoggerFactory.getLogger(ClothingPieceService.class);
+
     private final UserService userService;
     private final ClothingPieceRepository pieceRepository;
     private final FileStorageService fileStorageService;
@@ -41,11 +45,14 @@ public class ClothingPieceService {
                 storedFile.imageUrl(),
                 storedFile.storagePath(),
                 storedFile.originalFilename());
-        return ClothingPieceDto.from(pieceRepository.save(piece));
+        ClothingPiece savedPiece = pieceRepository.save(piece);
+        log.info("User {} created clothing piece {} in category {}", user.getUsername(), savedPiece.getId(), category);
+        return ClothingPieceDto.from(savedPiece);
     }
 
     @Transactional(readOnly = true)
     public List<ClothingPieceDto> getAllPieces() {
+        log.debug("Loading all clothing pieces for admin request");
         return pieceRepository.findAll().stream()
                 .map(ClothingPieceDto::from)
                 .toList();
@@ -54,6 +61,7 @@ public class ClothingPieceService {
     @Transactional(readOnly = true)
     public List<ClothingPieceDto> getCurrentUserPieces(Authentication authentication) {
         AppUser user = userService.currentUser(authentication);
+        log.debug("Loading clothing pieces for user {}", user.getUsername());
         return pieceRepository.findByOwnerOrderByCreatedAtDesc(user).stream()
                 .map(ClothingPieceDto::from)
                 .toList();
@@ -78,7 +86,9 @@ public class ClothingPieceService {
         AppUser user = userService.currentUser(authentication);
         ClothingPiece piece = findOwnedPiece(user, id);
         piece.setCategory(request.category());
-        return ClothingPieceDto.from(pieceRepository.save(piece));
+        ClothingPiece savedPiece = pieceRepository.save(piece);
+        log.info("User {} updated clothing piece {} to category {}", user.getUsername(), id, request.category());
+        return ClothingPieceDto.from(savedPiece);
     }
 
     @Transactional
@@ -87,6 +97,7 @@ public class ClothingPieceService {
         ClothingPiece piece = findOwnedPiece(user, id);
         pieceRepository.delete(piece);
         fileStorageService.delete(piece.getStoragePath());
+        log.warn("User {} deleted clothing piece {}", user.getUsername(), id);
     }
 
     @Transactional(readOnly = true)
@@ -95,6 +106,7 @@ public class ClothingPieceService {
         Map<ClothingCategory, ClothingPieceDto> outfit = new EnumMap<>(ClothingCategory.class);
         Arrays.stream(ClothingCategory.values()).forEach(category ->
                 outfit.put(category, randomPiece(user, category).map(ClothingPieceDto::from).orElse(null)));
+        log.debug("Generated random outfit for user {}", user.getUsername());
         return outfit;
     }
 

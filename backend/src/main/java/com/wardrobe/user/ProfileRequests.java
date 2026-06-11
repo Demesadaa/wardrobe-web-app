@@ -9,13 +9,17 @@ public final class ProfileRequests {
     }
 
     public record CreateProfileRequest(
-            @NotNull Long userId,
-            @NotBlank @Size(max = 80) String displayName,
-            @Size(max = 280) String bio) {
+            @NotNull(message = "{validation.profile.userId.required}") Long userId,
+            @NotBlank(message = "{validation.profile.displayName.required}")
+            @Size(max = 80, message = "{validation.profile.displayName.size}")
+            String displayName,
+            @Size(max = 280, message = "{validation.profile.bio.size}") String bio) {
     }
 
     public record UpdateProfileRequest(
-            @NotBlank @Size(max = 80) String displayName,
-            @Size(max = 280) String bio) {
+            @NotBlank(message = "{validation.profile.displayName.required}")
+            @Size(max = 80, message = "{validation.profile.displayName.size}")
+            String displayName,
+            @Size(max = 280, message = "{validation.profile.bio.size}") String bio) {
     }
 }

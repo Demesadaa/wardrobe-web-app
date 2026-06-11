@@ -1,0 +1,96 @@
+# Assignment 2 Advanced API Configuration Update
+
+I, Demetre, enhanced my existing Spring Boot REST API project. I did not create a new project. I added externalized configuration with profiles, validated custom application settings, REST internationalization, localized validation errors, structured logging, and rolling file logs.
+
+## Conceptual Update Log
+
+- I separated common configuration from environment-specific configuration.
+- I added the `dev` profile for local development with an in-memory H2 database and seeded test users.
+- I added the `prod` profile for production-style execution with PostgreSQL settings driven by environment variables.
+- I created a validated custom configuration POJO using `@ConfigurationProperties(prefix = "app.settings")`.
+- I injected those custom settings into a metadata controller so `/api/meta` returns dynamic API metadata.
+- I configured REST locale resolution through the `Accept-Language` request header.
+- I added UTF-8 message bundles with default Georgian messages and English messages.
+- I localized validation messages by using message bundle keys in DTO validation annotations.
+- I added a global REST exception handler that returns structured localized JSON error responses.
+- I replaced informal output practices with SLF4J logging patterns.
+- I added meaningful logs in authentication, user management, wardrobe piece management, file storage, and exception handling.
+- I configured logs to write to `logs/app.log` with rolling log files.
+- I configured dev logging to be more verbose and prod logging to be stricter.
+
+## Custom Configuration Properties
+
+The custom class is `AppSettingsProperties` and uses the prefix:
+
+```text
+app.settings
+```
+
+Fields:
+
+```text
+app.settings.title
+app.settings.default-page-limit
+app.settings.support-email
+app.settings.external-style-service-url
+app.settings.ai-suggestions-enabled
+```
+
+The fields are validated with annotations such as `@NotBlank`, `@Min`, `@Max`, and `@Email`.
+
+## Profiles
+
+Run with the development profile:
+
+```powershell
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Run with the production profile:
+
+```powershell
+mvn spring-boot:run -Dspring-boot.run.profiles=prod
+```
+
+In an IDE, set the active Spring profile to either:
+
+```text
+dev
+prod
+```
+
+The default profile is `dev`.
+
+## Internationalization
+
+The API reads the requested language from the standard `Accept-Language` HTTP header.
+
+Test English:
+
+```powershell
+curl -H "Accept-Language: en" http://localhost:8080/api/meta
+```
+
+Test Georgian/default messages:
+
+```powershell
+curl -H "Accept-Language: ka" http://localhost:8080/api/meta
+```
+
+Validation errors are also localized. For example, sending an invalid registration request to `POST /api/auth/register` returns localized field errors.
+
+## Structured Logging
+
+Logs are printed to the console and written to:
+
+```text
+backend/logs/app.log
+```
+
+Rolling log files use this pattern:
+
+```text
+backend/logs/app-yyyy-MM-dd.N.log
+```
+
+The dev profile uses more detailed logging for `com.wardrobe`, while the prod profile uses stricter root logging.

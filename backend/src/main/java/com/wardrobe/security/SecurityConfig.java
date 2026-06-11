@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/api/meta",
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/h2-console/**",
